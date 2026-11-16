@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="fi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="theme-color" content="#f4f1ea">
+<title>Kertotaulutreeni</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+:root{--bg:#f4f1ea;--card:#fff;--ink:#1f2a37;--muted:#6b7280;--accent:#2563eb;--accentbg:#dbeafe;--ok:#15803d;--okbg:#dcfce7;--bad:#c2410c;--badbg:#ffedd5;--gold:#f59e0b}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;min-height:100%;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+body{display:flex;justify-content:center}
+button,label{touch-action:manipulation;font-family:inherit}
+.app{width:100%;max-width:480px;min-height:100vh;padding:14px 14px 20px;display:flex;flex-direction:column}
+.screen{display:none;flex:1;flex-direction:column;gap:12px}
+.screen.active{display:flex}
+h1{font-size:24px;margin:2px 0}
+h2{font-size:15px;margin:0 0 8px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+.card{background:var(--card);border-radius:18px;padding:14px;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.rank{display:flex;align-items:center;gap:12px}
+.rank .emoji{font-size:44px;line-height:1}
+.rank .info{flex:1}
+.rank .name{font-weight:700;font-size:18px}
+.rank .sub{color:var(--muted);font-size:14px}
+.bar{height:10px;background:#e5e7eb;border-radius:6px;overflow:hidden;margin-top:6px}
+.bar i{display:block;height:100%;background:var(--gold);width:0;transition:width .4s}
+.tables{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+.tables label{position:relative;display:block}
+.tables input{position:absolute;opacity:0;pointer-events:none}
+.tables .tile{display:flex;flex-direction:column;align-items:center;justify-content:center;height:78px;border-radius:14px;border:3px solid #d1d5db;background:#fff;user-select:none;padding:4px}
+.tables .tile b{font-size:26px;line-height:1.1}
+.tables .tile small{font-size:11px;color:var(--muted);margin-top:2px;white-space:nowrap}
+.tables .tile .mini{width:80%;height:5px;background:#e5e7eb;border-radius:3px;overflow:hidden;margin-top:4px}
+.tables .tile .mini i{display:block;height:100%;background:var(--accent)}
+.tables input:checked+.tile{border-color:var(--accent);background:var(--accentbg);color:#1e3a8a}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+.chip{flex:1;min-width:52px;padding:12px 6px;border-radius:12px;border:2px solid #d1d5db;background:#fff;font-size:16px;font-weight:600;text-align:center;user-select:none}
+.chip.on{border-color:var(--accent);background:var(--accentbg);color:#1e3a8a}
+.lvldesc{margin-top:10px;font-size:14px;color:var(--muted);line-height:1.45}
+.lvldesc b{color:var(--ink)}
+.linkrow{display:flex;justify-content:space-between;align-items:center;margin-top:8px}
+.small{font-size:14px;color:var(--muted)}
+.btn{border:0;border-radius:16px;padding:18px;font-size:20px;font-weight:700;background:var(--accent);color:#fff;width:100%}
+.btn.ghost{background:#fff;color:var(--ink);border:2px solid #d1d5db}
+.textbtn{background:none;border:0;color:var(--accent);font-size:15px;font-weight:600;padding:8px}
+.warn{color:var(--bad);font-size:14px;min-height:18px;text-align:center}
+
+/* peli */
+.top{display:flex;align-items:center;gap:10px}
+.top .bar{flex:1;height:14px;margin:0}
+.top .bar i{background:var(--accent)}
+.count{font-weight:700;font-size:15px;min-width:44px;text-align:right}
+.hud{display:flex;justify-content:space-between;align-items:center;font-size:18px;font-weight:700;padding:0 4px}
+.hud .lvl{font-size:13px;font-weight:600;color:var(--muted);background:#fff;padding:4px 10px;border-radius:10px}
+.qwrap{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;border-radius:22px;background:#fff;padding:18px 8px;transition:background .2s;min-height:190px}
+.qwrap.ok{background:var(--okbg)}
+.qwrap.bad{background:var(--badbg)}
+.q{font-size:48px;font-weight:800;display:flex;align-items:center;gap:10px;white-space:nowrap}
+.box{display:inline-flex;align-items:center;justify-content:center;min-width:84px;height:74px;padding:0 10px;border-radius:14px;border:4px dashed var(--accent);color:var(--accent)}
+.box.filled{border-style:solid}
+.qwrap.ok .box{border-color:var(--ok);color:var(--ok)}
+.qwrap.bad .box{border-color:var(--bad);color:var(--bad)}
+.fb{font-size:20px;font-weight:700;min-height:28px;text-align:center}
+.fb.ok{color:var(--ok)}
+.fb.bad{color:var(--bad)}
+.fb .eq{display:block;font-size:30px;margin-top:4px}
+.fb .pts{display:block;font-size:16px;color:var(--gold);margin-top:2px}
+.pad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.pad button{height:66px;border-radius:16px;border:0;background:#fff;font-size:30px;font-weight:700;color:var(--ink);box-shadow:0 2px 0 #d1d5db;user-select:none}
+.pad button:active{transform:translateY(2px);box-shadow:none}
+.pad .okk{background:var(--accent);color:#fff;box-shadow:0 2px 0 #1e40af;font-size:24px}
+.pad .okk.cont{background:var(--bad);box-shadow:0 2px 0 #9a3412;font-size:20px}
+.pad .del{font-size:24px}
+.pop{position:fixed;left:50%;top:36%;transform:translate(-50%,-50%) scale(.6);background:var(--gold);color:#fff;font-weight:800;font-size:24px;padding:14px 22px;border-radius:18px;opacity:0;pointer-events:none;transition:all .25s;box-shadow:0 6px 20px rgba(0,0,0,.2);text-align:center;z-index:5}
+.pop.show{opacity:1;transform:translate(-50%,-50%) scale(1)}
+.pop.lvlup{background:#7c3aed}
+
+/* loppu */
+.big{font-size:64px;text-align:center;line-height:1}
+.center{text-align:center}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:12px;text-align:center}
+.stats div b{display:block;font-size:26px}
+.stats div span{font-size:13px;color:var(--muted)}
+.misslist{display:flex;flex-wrap:wrap;gap:8px}
+.misslist span{background:var(--badbg);color:var(--bad);padding:6px 10px;border-radius:10px;font-weight:700}
+.uplist{display:flex;flex-direction:column;gap:6px;font-weight:700;color:#6d28d9}
+
+/* kartta */
+.grid{display:grid;grid-template-columns:repeat(11,1fr);gap:2px}
+.grid div{aspect-ratio:1;display:flex;align-items:center;justify-content:center;border-radius:5px;font-size:12px;font-weight:700}
+.grid .h{background:none;color:var(--muted);font-size:13px}
+.l0{background:#e5e7eb;color:#9ca3af}
+.l1{background:#fed7aa;color:#9a3412}
+.l2{background:#fde68a;color:#854d0e}
+.l3{background:#86efac;color:#14532d}
+.legend{display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:14px}
+.legend span{display:inline-block;width:14px;height:14px;border-radius:4px;vertical-align:-2px;margin-right:6px}
+.ptable{width:100%;border-collapse:collapse;font-size:14px}
+.ptable td{padding:4px 2px}
+.ptable td:last-child{text-align:right;font-weight:700}
+canvas#conf{position:fixed;inset:0;pointer-events:none;z-index:10}
+</style>
+</head>
+<body>
+<canvas id="conf"></canvas>
+<div class="app">
+
+<!-- ALKU -->
+<section class="screen active" id="s-start">
+  <h1>Kertotaulutreeni ✖️</h1>
+  <div class="card rank" id="rankCard"></div>
+
+  <div class="card">
+    <h2>Mitkä kertotaulut?</h2>
+    <div class="tables" id="tables"></div>
+    <div class="linkrow">
+      <button class="textbtn" id="selAll">Valitse kaikki</button>
+      <button class="textbtn" id="selNone">Tyhjennä</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Vaikeustaso</h2>
+    <div class="row" id="modeRow"></div>
+    <div class="lvldesc" id="lvlDesc"></div>
+  </div>
+
+  <div class="card">
+    <h2>Kierroksen pituus</h2>
+    <div class="row" id="lenRow"></div>
+    <div class="row" style="margin-top:8px"><div class="chip" id="tSound"></div></div>
+  </div>
+
+  <div class="warn" id="startWarn"></div>
+  <button class="btn" id="startBtn">Aloita ▶</button>
+  <button class="btn ghost" id="gridBtn">🗺️ Sataruudukko</button>
+</section>
+
+<!-- PELI -->
+<section class="screen" id="s-game">
+  <div class="top">
+    <button class="textbtn" id="quitBtn" aria-label="Lopeta">✕</button>
+    <div class="bar"><i id="prog"></i></div>
+    <div class="count" id="count">1/10</div>
+  </div>
+  <div class="hud"><span id="streak">🔥 0</span><span class="lvl" id="lvlTag"></span><span id="rstars">⭐ 0</span></div>
+  <div class="qwrap" id="qwrap">
+    <div class="q" id="q"></div>
+    <div class="fb" id="fb"></div>
+  </div>
+  <div class="pad" id="pad"></div>
+</section>
+
+<!-- LOPPU -->
+<section class="screen" id="s-end">
+  <div class="big" id="endEmoji">🎉</div>
+  <h1 class="center" id="endTitle">Kierros valmis!</h1>
+  <div class="card stats">
+    <div><b id="eStars">0</b><span>pistettä ⭐</span></div>
+    <div><b id="eRight">0/0</b><span>oikein</span></div>
+    <div><b id="eBest">0</b><span>paras putki 🔥</span></div>
+    <div><b id="eTime">–</b><span>keskim. vastausaika</span></div>
+  </div>
+  <div class="card" id="upCard" style="display:none">
+    <h2>Taso nousi 🆙</h2>
+    <div class="uplist" id="upList"></div>
+  </div>
+  <div class="card" id="newMasteredCard" style="display:none">
+    <h2>Uusia hallittuja 🟢</h2>
+    <div id="newMastered" class="small"></div>
+  </div>
+  <div class="card" id="missCard" style="display:none">
+    <h2>Näitä vielä harjoitellaan</h2>
+    <div class="misslist" id="missList"></div>
+  </div>
+  <div class="card rank" id="rankCard2"></div>
+  <p class="center small">Hyvä hetki pienelle tauolle: juo vettä tai venyttele 🙆</p>
+  <button class="btn" id="againBtn">Uusi kierros ▶</button>
+  <button class="btn ghost" id="homeBtn">Alkuun</button>
+</section>
+
+<!-- KARTTA -->
+<section class="screen" id="s-grid">
+  <h1>Sataruudukko 🗺️</h1>
+  <p class="small" style="margin:0">Tavoite: koko ruudukko vihreäksi. Lasku muuttuu vihreäksi, kun vastaat siihen oikein alle 6 sekunnissa kolme kertaa peräkkäin.</p>
+  <div class="card"><div class="grid" id="grid"></div></div>
+  <div class="card legend">
+    <div><span class="l0"></span>Ei vielä harjoiteltu</div>
+    <div><span class="l1"></span>Harjoitellaan</div>
+    <div><span class="l2"></span>Melkein hallussa</div>
+    <div><span class="l3"></span>Hallussa</div>
+  </div>
+  <div class="center small" id="gridSummary"></div>
+  <div class="card">
+    <h2>Pisteet</h2>
+    <table class="ptable">
+      <tr><td>⚡⚡ Alle 3 s</td><td>3 ⭐</td></tr>
+      <tr><td>⚡ Alle 6 s</td><td>2 ⭐</td></tr>
+      <tr><td>Hitaampi oikea vastaus</td><td>1 ⭐</td></tr>
+      <tr><td>Puuttuva tekijä (4 × ? = 28)</td><td>+1 ⭐</td></tr>
+      <tr><td>Joka 5. oikein peräkkäin</td><td>+5 ⭐</td></tr>
+    </table>
+  </div>
+  <button class="btn" id="gridBack">Takaisin</button>
+  <button class="textbtn" id="resetBtn">Nollaa edistyminen</button>
+</section>
+</div>
+<div class="pop" id="pop"></div>
+
+<script>
+(function(){
+const KEY='kertotaulu_v2';
+const N=10;                  // lukualue 1–10
+const FAST_MS=6000;          // tätä nopeampi oikea vastaus = "ulkomuistista"
+const SUPER_MS=3000;         // salamavastaus
+const MASTER_RUN=3;          // näin monta nopeaa oikeaa peräkkäin = hallussa
+const LEVEL_UP=12;           // nopeita oikeita vastauksia tasolla, jotta taso nousee
+const MAX_EXTRA=5;           // väärien uusintojen enimmäismäärä per kierros
+const LEVELS={
+  1:{name:'Perusta',      ex:'4 × 7 = ?',  desc:'Kertotaulun luku on aina ensin ja haetaan vain vastaus.'},
+  2:{name:'Vaihtuva järjestys', ex:'7 × 4 = ?', desc:'Tekijät tulevat kummin päin tahansa. Haetaan vain vastaus.'},
+  3:{name:'Puuttuva tekijä', ex:'4 × ? = 28', desc:'Puolessa tehtävistä haetaan toista tekijää. Kertotaulun luku on edelleen ensin.'},
+  4:{name:'Mestari',      ex:'? × 4 = 28', desc:'Kaikki sekaisin. Useimmissa tehtävissä haetaan puuttuvaa tekijää kummalta puolelta tahansa.'}
+};
+const RANKS=[
+  [0,'🐣','Aloittelija'],[40,'🐭','Laskuhiiri'],[100,'🦊','Kettu'],[200,'🦉','Viisas pöllö'],
+  [350,'🐯','Tiikeri'],[550,'🦁','Leijona'],[800,'🐉','Lohikäärme'],[1200,'👑','Kertotaulukuningas']];
+const PRAISE=['Oikein!','Hienoa!','Jes!','Just noin!','Täsmälleen!','Hyvä!'];
+const FAST_PRAISE=['Nopeasti! ⚡','Hyvä vauhti! ⚡','Ulkomuistista! ⚡'];
+const SUPER_PRAISE=['Salamannopea! ⚡⚡','Huippunopea! ⚡⚡','Silmänräpäys! ⚡⚡'];
+
+let store={stars:0,facts:{},lvl:{},sel:[2,5,10],len:10,mode:'auto',sound:true};
+try{const s=JSON.parse(localStorage.getItem(KEY));if(s&&typeof s==='object')store=Object.assign(store,s);}catch(e){}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(store));}catch(e){}}
+
+const $=id=>document.getElementById(id);
+const rnd=n=>Math.floor(Math.random()*n);
+const pickArr=a=>a[rnd(a.length)];
+function fk(a,b){return Math.min(a,b)+'x'+Math.max(a,b);}
+function fact(a,b){const k=fk(a,b);return store.facts[k]||(store.facts[k]={ok:0,bad:0,run:0});}
+function level(a,b){const f=store.facts[fk(a,b)];if(!f||f.ok+f.bad===0)return 0;if(f.run>=MASTER_RUN)return 3;if(f.run>=1)return 2;return 1;}
+function tlvl(t){return store.lvl[t]||(store.lvl[t]={l:1,p:0});}
+function effLevel(t){return store.mode==='auto'?tlvl(t).l:+store.mode;}
+
+function show(id){document.querySelectorAll('.screen').forEach(s=>s.classList.toggle('active',s.id===id));window.scrollTo(0,0);}
+
+/* ---------- ääni & värinä ---------- */
+let actx=null;
+function tone(freqs,dur){
+  if(!store.sound)return;
+  try{
+    actx=actx||new (window.AudioContext||window.webkitAudioContext)();
+    const t=actx.currentTime;
+    freqs.forEach((f,i)=>{
+      const o=actx.createOscillator(),g=actx.createGain();
+      o.type='sine';o.frequency.value=f;
+      const s=t+i*dur;
+      g.gain.setValueAtTime(0.0001,s);
+      g.gain.exponentialRampToValueAtTime(0.18,s+0.01);
+      g.gain.exponentialRampToValueAtTime(0.0001,s+dur);
+      o.connect(g);g.connect(actx.destination);o.start(s);o.stop(s+dur+0.02);
+    });
+  }catch(e){}
+}
+function buzz(p){try{navigator.vibrate&&navigator.vibrate(p);}catch(e){}}
+
+/* ---------- arvo ---------- */
+function rankFor(st){let r=RANKS[0],next=null;for(let i=0;i<RANKS.length;i++){if(st>=RANKS[i][0]){r=RANKS[i];next=RANKS[i+1]||null;}}return {r,next};}
+function renderRank(el){
+  const {r,next}=rankFor(store.stars);
+  let pct=100,sub='Korkein arvo saavutettu!';
+  if(next){pct=Math.round((store.stars-r[0])/(next[0]-r[0])*100);sub=`${next[0]-store.stars} ⭐ seuraavaan: ${next[1]} ${next[2]}`;}
+  el.innerHTML=`<div class="emoji">${r[1]}</div><div class="info"><div class="name">${r[2]} · ⭐ ${store.stars}</div><div class="sub">${sub}</div><div class="bar"><i style="width:${pct}%"></i></div></div>`;
+}
+
+/* ---------- aloitusnäkymä ---------- */
+function tableMastery(t){let m=0;for(let n=1;n<=N;n++)if(level(t,n)===3)m++;return m;}
+function renderStart(){
+  renderRank($('rankCard'));
+  const tb=$('tables');tb.innerHTML='';
+  for(let t=1;t<=N;t++){
+    const m=tableMastery(t),L=tlvl(t);
+    const pct=L.l>=4?100:Math.round(L.p/LEVEL_UP*100);
+    const lab=document.createElement('label');
+    lab.innerHTML=`<input type="checkbox" value="${t}" ${store.sel.includes(t)?'checked':''}><span class="tile"><b>${t}</b><small>${m===N?'✅':'Taso '+L.l}</small><span class="mini"><i style="width:${pct}%"></i></span></span>`;
+    lab.querySelector('input').addEventListener('change',e=>{
+      const v=+e.target.value;
+      store.sel=e.target.checked?[...new Set([...store.sel,v])]:store.sel.filter(x=>x!==v);
+      save();$('startWarn').textContent='';
+    });
+    tb.appendChild(lab);
+  }
+  const mr=$('modeRow');mr.innerHTML='';
+  ['auto','1','2','3','4'].forEach(m=>{
+    const c=document.createElement('div');c.className='chip'+(String(store.mode)===m?' on':'');
+    c.textContent=m==='auto'?'Auto':m;
+    c.onclick=()=>{store.mode=m;save();renderStart();};mr.appendChild(c);
+  });
+  if(store.mode==='auto'){
+    $('lvlDesc').innerHTML='<b>Automaattinen:</b> jokaisella kertotaululla on oma tasonsa. Taso nousee, kun siinä on vastattu nopeasti ja oikein '+LEVEL_UP+' kertaa. Palkki laatassa näyttää matkan seuraavalle tasolle.<br>'+
+      Object.entries(LEVELS).map(([k,v])=>`${k}. ${v.name}: <b>${v.ex}</b>`).join('<br>');
+  }else{
+    const v=LEVELS[store.mode];
+    $('lvlDesc').innerHTML=`<b>Taso ${store.mode}: ${v.name}</b> (${v.ex})<br>${v.desc}<br><i>Kiinteällä tasolla kertotaulujen omat tasot eivät nouse.</i>`;
+  }
+  const lr=$('lenRow');lr.innerHTML='';
+  [5,10,15,20].forEach(n=>{
+    const c=document.createElement('div');c.className='chip'+(store.len===n?' on':'');c.textContent=n;
+    c.onclick=()=>{store.len=n;save();renderStart();};lr.appendChild(c);
+  });
+  $('tSound').classList.toggle('on',store.sound);
+  $('tSound').textContent=store.sound?'🔊 Äänet päällä':'🔇 Äänet pois';
+}
+$('selAll').onclick=()=>{store.sel=[...Array(N)].map((_,i)=>i+1);save();renderStart();};
+$('selNone').onclick=()=>{store.sel=[];save();renderStart();};
+$('tSound').onclick=()=>{store.sound=!store.sound;save();renderStart();if(store.sound)tone([660],.1);};
+$('gridBtn').onclick=()=>{renderGrid();show('s-grid');};
+$('startBtn').onclick=startRound;
+
+/* ---------- kierros ---------- */
+let R=null;
+function startRound(){
+  if(!store.sel.length){$('startWarn').textContent='Valitse ainakin yksi kertotaulu.';return;}
+  const before={};
+  for(const t of store.sel)for(let n=1;n<=N;n++)before[fk(t,n)]=level(t,n);
+  R={i:0,total:store.len,extra:0,retry:[],right:0,asked:0,stars:0,streak:0,best:0,times:[],miss:new Set(),before,ups:[],lastKey:null,q:null,input:'',locked:false,waitContinue:false};
+  show('s-game');buildPad();nextQ();
+}
+function weightFor(a,b){return [3,4,2,1][level(a,b)];}
+function pickFact(){
+  const pool=[];
+  for(const t of store.sel)for(let n=1;n<=N;n++){
+    if(fk(t,n)===R.lastKey&&store.sel.length*N>1)continue;
+    pool.push([t,n,weightFor(t,n)]);
+  }
+  let sum=pool.reduce((s,p)=>s+p[2],0),x=Math.random()*sum;
+  for(const p of pool){x-=p[2];if(x<=0)return [p[0],p[1]];}
+  return [pool[0][0],pool[0][1]];
+}
+// t = harjoiteltava kertotaulu, n = toinen tekijä
+function makeQ(t,n){
+  const L=effLevel(t);
+  let a=t,b=n,miss='c';
+  if(L===2){if(Math.random()<.5){a=n;b=t;}}
+  else if(L===3){miss=Math.random()<.5?'c':'b';}
+  else if(L>=4){if(Math.random()<.5){a=n;b=t;}miss=Math.random()<.3?'c':pickArr(['a','b']);}
+  return {t,n,L,a,b,c:a*b,miss,ans:miss==='c'?a*b:(miss==='a'?a:b)};
+}
+function nextQ(){
+  if(R.i>=R.total){endRound();return;}
+  R.retry.forEach(r=>r.due--);
+  let t,n;const idx=R.retry.findIndex(r=>r.due<=0);
+  if(idx>=0){t=R.retry[idx].t;n=R.retry[idx].n;R.retry.splice(idx,1);}
+  else [t,n]=pickFact();
+  R.q=makeQ(t,n);R.lastKey=fk(t,n);R.input='';R.locked=false;R.waitContinue=false;R.shownAt=Date.now();
+  $('qwrap').className='qwrap';$('fb').className='fb';$('fb').innerHTML='&nbsp;';
+  setOkKey(false);renderQ();renderHud();
+}
+function renderQ(){
+  const q=R.q;
+  const box=`<span class="box ${R.input?'filled':''}">${R.input||'?'}</span>`;
+  const A=q.miss==='a'?box:q.a,B=q.miss==='b'?box:q.b,C=q.miss==='c'?box:q.c;
+  $('q').innerHTML=`<span>${A}</span><span>×</span><span>${B}</span><span>=</span><span>${C}</span>`;
+}
+function renderHud(){
+  $('count').textContent=`${Math.min(R.i+1,R.total)}/${R.total}`;
+  $('prog').style.width=(R.i/R.total*100)+'%';
+  $('streak').textContent='🔥 '+R.streak;
+  $('rstars').textContent='⭐ '+R.stars;
+  $('lvlTag').textContent=R.q?`Taso ${R.q.L}`:'';
+}
+function popMsg(html,cls){const p=$('pop');p.className='pop '+(cls||'');p.innerHTML=html;void p.offsetWidth;p.classList.add('show');clearTimeout(popMsg.t);popMsg.t=setTimeout(()=>p.classList.remove('show'),1300);}
+
+function buildPad(){
+  const pad=$('pad');pad.innerHTML='';
+  ['1','2','3','4','5','6','7','8','9','del','0','ok'].forEach(k=>{
+    const b=document.createElement('button');
+    if(k==='del'){b.className='del';b.textContent='⌫';b.setAttribute('aria-label','Pyyhi');}
+    else if(k==='ok'){b.className='okk';b.id='okKey';b.textContent='OK';}
+    else b.textContent=k;
+    b.addEventListener('click',()=>press(k));
+    pad.appendChild(b);
+  });
+}
+function setOkKey(cont){const k=$('okKey');if(!k)return;k.classList.toggle('cont',cont);k.textContent=cont?'Jatka ➜':'OK';}
+function press(k){
+  if(!R||R.locked)return;
+  if(R.waitContinue){if(k==='ok'){R.i++;nextQ();}return;}
+  if(k==='del'){R.input=R.input.slice(0,-1);renderQ();return;}
+  if(k==='ok'){if(R.input)check();return;}
+  if(R.input.length<3){R.input=(R.input==='0'?'':R.input)+k;renderQ();}
+}
+function levelProgress(q,delta){
+  // vain automaattitilassa ja vain kertotaulun omalla tasolla pelatuista tehtävistä
+  if(store.mode!=='auto')return;
+  const L=tlvl(q.t);if(q.L!==L.l||L.l>=4)return;
+  L.p=Math.max(0,L.p+delta);
+  if(L.p>=LEVEL_UP){
+    L.l++;L.p=0;R.ups.push([q.t,L.l]);
+    setTimeout(()=>{popMsg(`🆙 ${q.t}:n kertotaulu<br>Taso ${L.l}: ${LEVELS[L.l].name}`,'lvlup');tone([392,523,659,784],.1);},500);
+  }
+}
+function check(){
+  const q=R.q,f=fact(q.a,q.b),ms=Date.now()-R.shownAt;
+  R.asked++;
+  if(+R.input===q.ans){
+    const fast=ms<FAST_MS,sup=ms<SUPER_MS;
+    f.ok++;if(fast)f.run++;
+    R.right++;R.streak++;R.best=Math.max(R.best,R.streak);R.times.push(ms);
+    let gain=sup?3:fast?2:1;
+    if(q.miss!=='c')gain+=1;
+    let txt=sup?pickArr(SUPER_PRAISE):fast?pickArr(FAST_PRAISE):pickArr(PRAISE);
+    $('qwrap').className='qwrap ok';$('fb').className='fb ok';
+    if(R.streak%5===0){gain+=5;popMsg(`🔥 ${R.streak} putkeen!<br>+5 ⭐`);tone([523,659,784,1047],.09);}
+    else tone(sup?[660,880,1100]:fast?[660,880]:[660],.09);
+    $('fb').innerHTML=`${txt}<span class="pts">+${gain} ⭐</span>`;
+    R.stars+=gain;store.stars+=gain;
+    levelProgress(q,fast?1:0);
+    buzz(25);save();renderHud();
+    R.locked=true;setTimeout(()=>{R.i++;nextQ();},sup?600:850);
+  }else{
+    f.bad++;f.run=0;R.streak=0;R.miss.add(fk(q.a,q.b));
+    levelProgress(q,-1);
+    if(R.extra<MAX_EXTRA){R.retry.push({t:q.t,n:q.n,due:3});R.extra++;R.total++;}
+    $('qwrap').className='qwrap bad';$('fb').className='fb bad';
+    $('fb').innerHTML=`Melkein! Oikea vastaus:<span class="eq">${q.a} × ${q.b} = ${q.c}</span><span class="small">Tämä tulee pian uudestaan.</span>`;
+    tone([330,262],.13);buzz([40,60,40]);save();renderHud();
+    R.input=String(q.ans);renderQ();
+    R.locked=true;setTimeout(()=>{R.locked=false;R.waitContinue=true;setOkKey(true);},700);
+  }
+}
+document.addEventListener('keydown',e=>{
+  if(!$('s-game').classList.contains('active'))return;
+  if(/^[0-9]$/.test(e.key))press(e.key);
+  else if(e.key==='Backspace')press('del');
+  else if(e.key==='Enter')press('ok');
+});
+$('quitBtn').onclick=()=>{R=null;renderStart();show('s-start');};
+
+function endRound(){
+  $('prog').style.width='100%';
+  const acc=R.asked?R.right/R.asked:0;
+  $('eStars').textContent=R.stars;
+  $('eRight').textContent=`${R.right}/${R.asked}`;
+  $('eBest').textContent=R.best;
+  $('eTime').textContent=R.times.length?(R.times.reduce((s,x)=>s+x,0)/R.times.length/1000).toFixed(1).replace('.',',')+' s':'–';
+  $('endEmoji').textContent=acc>=.9?'🏆':acc>=.7?'🎉':'💪';
+  $('endTitle').textContent=acc>=.9?'Upea kierros!':acc>=.7?'Hieno kierros!':'Hyvää harjoitusta!';
+  $('upCard').style.display=R.ups.length?'':'none';
+  $('upList').innerHTML=R.ups.map(([t,l])=>`<div>${t}:n kertotaulu → Taso ${l}: ${LEVELS[l].name}</div>`).join('');
+  const newly=Object.keys(R.before).filter(k=>{const [a,b]=k.split('x').map(Number);return R.before[k]<3&&level(a,b)===3;});
+  $('newMasteredCard').style.display=newly.length?'':'none';
+  $('newMastered').textContent=newly.map(k=>k.replace('x',' × ')).join(',  ');
+  const miss=[...R.miss].filter(k=>{const [a,b]=k.split('x').map(Number);return level(a,b)<3;});
+  $('missCard').style.display=miss.length?'':'none';
+  $('missList').innerHTML=miss.map(k=>{const [a,b]=k.split('x').map(Number);return `<span>${a} × ${b} = ${a*b}</span>`;}).join('');
+  renderRank($('rankCard2'));
+  show('s-end');
+  tone([523,659,784,1047,1319],.11);
+  confetti(acc>=.7||R.ups.length?160:70);
+}
+$('againBtn').onclick=startRound;
+$('homeBtn').onclick=()=>{renderStart();show('s-start');};
+
+/* ---------- sataruudukko ---------- */
+function renderGrid(){
+  const g=$('grid');let html='<div class="h">×</div>';
+  for(let c=1;c<=N;c++)html+=`<div class="h">${c}</div>`;
+  let mastered=0;
+  for(let r=1;r<=N;r++){
+    html+=`<div class="h">${r}</div>`;
+    for(let c=1;c<=N;c++){const l=level(r,c);if(l===3&&r<=c)mastered++;html+=`<div class="l${l}">${r*c}</div>`;}
+  }
+  g.innerHTML=html;
+  $('gridSummary').textContent=`Hallussa ${mastered}/55 eri laskua (3 × 4 ja 4 × 3 lasketaan samaksi).`;
+  $('resetBtn').textContent='Nollaa edistyminen';resetArmed=false;
+}
+let resetArmed=false;
+$('resetBtn').onclick=()=>{
+  if(!resetArmed){resetArmed=true;$('resetBtn').textContent='Varmasti? Paina uudelleen nollataksesi';return;}
+  store.facts={};store.lvl={};store.stars=0;save();renderGrid();
+};
+$('gridBack').onclick=()=>{renderStart();show('s-start');};
+
+/* ---------- konfetti ---------- */
+function confetti(n){
+  const cv=$('conf'),ctx=cv.getContext('2d');
+  cv.width=innerWidth;cv.height=innerHeight;
+  const cols=['#f59e0b','#2563eb','#16a34a','#ec4899','#8b5cf6','#ef4444'];
+  const ps=Array.from({length:n},()=>({x:Math.random()*cv.width,y:-20-Math.random()*cv.height*.5,vx:(Math.random()-.5)*3,vy:2+Math.random()*3,s:6+Math.random()*6,r:Math.random()*6,vr:(Math.random()-.5)*.3,c:pickArr(cols)}));
+  const t0=performance.now();
+  (function f(t){
+    ctx.clearRect(0,0,cv.width,cv.height);
+    ps.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.vy+=.04;p.r+=p.vr;ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.r);ctx.fillStyle=p.c;ctx.fillRect(-p.s/2,-p.s/4,p.s,p.s/2);ctx.restore();});
+    if(t-t0<3000)requestAnimationFrame(f);else ctx.clearRect(0,0,cv.width,cv.height);
+  })(t0);
+}
+
+renderStart();
+})();
+if('serviceWorker' in navigator && location.protocol.indexOf('http')===0){navigator.serviceWorker.register('sw.js').catch(function(){});}
+</script>
+</body>
+</html>
